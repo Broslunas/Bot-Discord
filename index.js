@@ -95,10 +95,13 @@ client.once(Events.ClientReady, async () => {
       });
     }
 
-    await serversCollection.deleteMany({}); // Limpia la tabla antes de insertar
-    await serversCollection.insertMany(serverData);
-
-    console.log("Datos de servidores añadidos a la base de datos");
+    if (serverData.length > 0) {
+      await serversCollection.deleteMany({}); // Limpia la tabla antes de insertar
+      await serversCollection.insertMany(serverData);
+      console.log("Datos de servidores añadidos a la base de datos");
+    } else {
+      console.log("No hay servidores para actualizar en la base de datos.");
+    }
   } catch (error) {
     console.error("Error al conectar a MongoDB:", error);
   }
@@ -125,10 +128,13 @@ client.once(Events.ClientReady, async () => {
       });
     }
 
-    await serversCollection.deleteMany({}); // Limpia la tabla antes de insertar
-    await serversCollection.insertMany(serverData);
-
-    console.log("Lista de servidores actualizada.");
+    if (serverData.length > 0) {
+      await serversCollection.deleteMany({}); // Limpia la tabla antes de insertar
+      await serversCollection.insertMany(serverData);
+      console.log("Lista de servidores actualizada.");
+    } else {
+      console.log("No hay servidores para actualizar en la base de datos.");
+    }
   } catch (error) {
     console.error("Error al actualizar la lista de servidores:", error);
   }
