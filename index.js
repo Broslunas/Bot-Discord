@@ -39,6 +39,24 @@ const commands = [
       },
     ],
   },
+  {
+    name: "set-custom-join-msg",
+    description: "Configura un mensaje de bienvenida personalizado",
+    options: [
+      {
+        name: "canal",
+        type: 7, // Channel type
+        description: "Canal donde se enviará el mensaje de bienvenida",
+        required: true,
+      },
+      {
+        name: "mensaje",
+        type: 3, // String type
+        description: "Mensaje antes del nombre del usuario",
+        required: true,
+      },
+    ],
+  },
 ];
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
@@ -72,9 +90,13 @@ const {
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
+const { MongoClient } = require("mongodb");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Map();
+
+const mongoClient = new MongoClient(process.env.MONGO_URI);
+let db;
 
 // Load commands dynamically
 const commandsPath = path.join(__dirname, "commands");
@@ -87,8 +109,39 @@ for (const file of commandFiles) {
   client.commands.set(command.name, command);
 }
 
-client.once(Events.ClientReady, () => {
+// Asegurar que el cliente tenga acceso al cliente de MongoDB
+client.mongoClient = mongoClient;
+
+client.once(Events.ClientReady, async () => {
   console.log(`Bot listo! ${client.user.tag}`);
+
+  try {
+    await mongoClient.connect();
+    db = mongoClient.db("Info");
+    console.log("Conectado a MongoDB");
+
+    const serversCollection = db.collection("Servers");
+    const serverData = [];
+
+    for (const guild of client.guilds.cache.values()) {
+      const owner = await guild.fetchOwner();
+      serverData.push({
+        id: guild.id,
+        name: guild.name,
+        owner: {
+          id: owner.id,
+          name: owner.user.tag,
+        },
+      });
+    }
+
+    await serversCollection.deleteMany({}); // Limpia la tabla antes de insertar
+    await serversCollection.insertMany(serverData);
+
+    console.log("Datos de servidores añadidos a la base de datos");
+  } catch (error) {
+    console.error("Error al conectar a MongoDB:", error);
+  }
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -127,6 +180,53 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.message.delete();
     }
   }
+});
+
+client.on(Events.GuildMemberAdd, async (member) => {
+  console.log(
+    `Nuevo miembro detectado: ${member.user.tag} (${member.user.id}) en el servidor ${member.guild.name} (${member.guild.id})`
+  );
+
+  try {
+    const db = client.mongoClient.db("Info");
+    const joinMsgCollection = db.collection("JoinMsg");
+
+    console.log(
+      "Buscando configuración de mensaje de bienvenida en la base de datos..."
+    );
+    const config = await joinMsgCollection.findOne({
+      guildId: member.guild.id,
+    });
+
+    if (config) {
+      console.log(
+        `Configuración encontrada: Canal ID: ${config.channelId}, Mensaje: "${config.message}"`
+      );
+      const channel = await member.guild.channels.fetch(config.channelId);
+
+      if (channel && channel.isTextBased()) {
+        console.log(
+          `Enviando mensaje de bienvenida en el canal ${channel.name} (${channel.id})`
+        );
+        await channel.send(`${config.message} ${member.user}`);
+      } else {
+        console.error(
+          `El canal configurado no es válido o no es accesible: ${config.channelId}`
+        );
+      }
+    } else {
+      console.log(
+        "No se encontró configuración de mensaje de bienvenida para este servidor."
+      );
+    }
+  } catch (error) {
+    console.error("Error al enviar el mensaje de bienvenida:", error);
+  }
+});
+
+process.on("exit", async () => {
+  await mongoClient.close();
+  console.log("Conexión a MongoDB cerrada");
 });
 
 client.login(process.env.DISCORD_TOKEN);
