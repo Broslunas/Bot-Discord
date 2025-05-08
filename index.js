@@ -18,58 +18,10 @@
 require("dotenv").config();
 const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v10");
-
-const commands = [
-  {
-    name: "mail",
-    description: "Envía un modmail al owner",
-    options: [
-      {
-        name: "mensaje",
-        type: 3,
-        description: "Contenido del mensaje",
-        required: true,
-      },
-      {
-        name: "anonimo",
-        type: 5,
-        description: "Enviar el mensaje de forma anónima",
-        required: false,
-      },
-    ],
-  },
-  {
-    name: "set-custom-join-msg",
-    description: "Configura un mensaje de bienvenida personalizado",
-    options: [
-      {
-        name: "canal",
-        type: 7, // Channel type
-        description: "Canal donde se enviará el mensaje de bienvenida",
-        required: true,
-      },
-      {
-        name: "mensaje",
-        type: 3, // String type
-        description: "Mensaje antes del nombre del usuario",
-        required: true,
-      },
-    ],
-  },
-];
+const { MongoClient } = require("mongodb");
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
-(async () => {
-  try {
-    console.log("Registrando comandos…");
-    await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
-      body: commands,
-    });
-    console.log("Comandos registrados correctamente");
-  } catch (error) {
-    console.error(error);
-  }
-})();
+const mongoClient = new MongoClient(process.env.MONGO_URI);
 
 // 4. index.js: carga comandos y maneja modmail
 require("dotenv").config();
@@ -85,23 +37,36 @@ const {
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
-const { MongoClient } = require("mongodb");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.commands = new Map();
 
-const mongoClient = new MongoClient(process.env.MONGO_URI);
 let db;
 
 // Load commands dynamically
 const commandsPath = path.join(__dirname, "commands");
 const commandFiles = fs
   .readdirSync(commandsPath)
-  .filter((file) => file.endsWith(".js"));
+  .filter(
+    (file) =>
+      file.endsWith(".js") ||
+      fs.statSync(path.join(commandsPath, file)).isDirectory()
+  );
 
 for (const file of commandFiles) {
-  const command = require(path.join(commandsPath, file));
-  client.commands.set(command.name, command);
+  const commandPath = path.join(commandsPath, file);
+  if (fs.statSync(commandPath).isDirectory()) {
+    const subCommandFiles = fs
+      .readdirSync(commandPath)
+      .filter((subFile) => subFile.endsWith(".js"));
+    for (const subFile of subCommandFiles) {
+      const command = require(path.join(commandPath, subFile));
+      client.commands.set(command.name, command);
+    }
+  } else {
+    const command = require(commandPath);
+    client.commands.set(command.name, command);
+  }
 }
 
 // Asegurar que el cliente tenga acceso al cliente de MongoDB
@@ -138,6 +103,68 @@ client.once(Events.ClientReady, async () => {
     console.error("Error al conectar a MongoDB:", error);
   }
 });
+
+(async () => {
+  console.log("Actualizando lista de servidores…");
+
+  try {
+    await mongoClient.connect();
+    const db = mongoClient.db("Info");
+    const serversCollection = db.collection("Servers");
+
+    const serverData = [];
+    for (const guild of client.guilds.cache.values()) {
+      const owner = await guild.fetchOwner();
+      serverData.push({
+        id: guild.id,
+        name: guild.name,
+        owner: {
+          id: owner.id,
+          name: owner.user.tag,
+        },
+      });
+    }
+
+    await serversCollection.deleteMany({}); // Limpia la tabla antes de insertar
+    await serversCollection.insertMany(serverData);
+
+    console.log("Lista de servidores actualizada.");
+  } catch (error) {
+    console.error("Error al actualizar la lista de servidores:", error);
+  }
+
+  console.log("Registrando comandos…");
+
+  const commands = [
+    require("./commands/mail"),
+    require("./commands/ping"),
+    require("./commands/setup-modmail"),
+  ];
+
+  // Registra comandos globalmente
+  await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {
+    body: commands,
+  });
+
+  try {
+    const db = mongoClient.db("Info");
+    const serversCollection = db.collection("Servers");
+
+    const guilds = await serversCollection.find({}).toArray();
+
+    for (const guild of guilds) {
+      await rest.put(
+        Routes.applicationGuildCommands(process.env.CLIENT_ID, guild.id),
+        { body: commands }
+      );
+      console.log(`Comandos registrados para el servidor: ${guild.id}`);
+    }
+  } catch (error) {
+    console.error("Error al registrar comandos en los servidores:", error);
+  }
+
+  console.log("Comandos registrados correctamente.");
+})();
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.isChatInputCommand()) {
