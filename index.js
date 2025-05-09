@@ -210,48 +210,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-client.on(Events.GuildMemberAdd, async (member) => {
-  console.log(
-    `Nuevo miembro detectado: ${member.user.tag} (${member.user.id}) en el servidor ${member.guild.name} (${member.guild.id})`
-  );
-
-  try {
-    const db = client.mongoClient.db("Info");
-    const joinMsgCollection = db.collection("JoinMsg");
-
-    console.log(
-      "Buscando configuración de mensaje de bienvenida en la base de datos..."
-    );
-    const config = await joinMsgCollection.findOne({
-      guildId: member.guild.id,
-    });
-
-    if (config) {
-      console.log(
-        `Configuración encontrada: Canal ID: ${config.channelId}, Mensaje: "${config.message}"`
-      );
-      const channel = await member.guild.channels.fetch(config.channelId);
-
-      if (channel && channel.isTextBased()) {
-        console.log(
-          `Enviando mensaje de bienvenida en el canal ${channel.name} (${channel.id})`
-        );
-        await channel.send(`${config.message} ${member.user}`);
-      } else {
-        console.error(
-          `El canal configurado no es válido o no es accesible: ${config.channelId}`
-        );
-      }
-    } else {
-      console.log(
-        "No se encontró configuración de mensaje de bienvenida para este servidor."
-      );
-    }
-  } catch (error) {
-    console.error("Error al enviar el mensaje de bienvenida:", error);
-  }
-});
-
 process.on("exit", async () => {
   await mongoClient.close();
   console.log("Conexión a MongoDB cerrada");
