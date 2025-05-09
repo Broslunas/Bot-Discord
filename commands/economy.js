@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 
 module.exports = {
   name: "economy",
@@ -93,9 +93,13 @@ module.exports = {
       const user = await economyCollection.findOne({ guildId, userId });
       const balance = user ? user.balance : 0;
 
-      await interaction.reply(
-        `Tu saldo actual en este servidor es: ${balance} monedas.`
-      );
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle("Saldo Actual")
+        .setDescription(
+          `Tu saldo actual en este servidor es: ${balance} monedas.`
+        );
+      await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "add-money") {
       if (!interaction.member.permissions.has("Administrator")) {
         return interaction.reply({
@@ -113,9 +117,13 @@ module.exports = {
         { upsert: true }
       );
 
-      await interaction.reply(
-        `Se han añadido ${amount} monedas a ${targetUser.tag} en este servidor.`
-      );
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle("Dinero Añadido")
+        .setDescription(
+          `Se han añadido ${amount} monedas a ${targetUser.tag} en este servidor.`
+        );
+      await interaction.reply({ embeds: [embed] });
     } else if (
       subcommand === "remove-money" &&
       !interaction.member.permissions.has("Administrator")
@@ -129,9 +137,13 @@ module.exports = {
         { upsert: true }
       );
 
-      await interaction.reply(
-        `Se han quitado ${amount} monedas a ${targetUser.tag} en este servidor.`
-      );
+      const embed = new EmbedBuilder()
+        .setColor(0xff0000)
+        .setTitle("Dinero Removido")
+        .setDescription(
+          `Se han quitado ${amount} monedas a ${targetUser.tag} en este servidor.`
+        );
+      await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "leaderboard") {
       const topUsers = await economyCollection
         .find({ guildId })
@@ -146,9 +158,13 @@ module.exports = {
         )
         .join("\n");
 
-      await interaction.reply(
-        `**Tabla de clasificación en este servidor:**\n${leaderboard}`
-      );
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle("Tabla de Clasificación")
+        .setDescription(
+          `**Tabla de clasificación en este servidor:**\n${leaderboard}`
+        );
+      await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "crime") {
       const userId = interaction.user.id;
       const cooldownField = "crimeCooldown";
@@ -162,9 +178,14 @@ module.exports = {
         );
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
-        return interaction.reply(
-          `Debes esperar ${minutes} minutos y ${seconds} segundos antes de cometer otro crimen.`
-        );
+
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("Enfriamiento Activo")
+          .setDescription(
+            `Debes esperar ${minutes} minutos y ${seconds} segundos antes de cometer otro crimen.`
+          );
+        return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       const outcome = Math.random() < 0.5 ? "win" : "lose";
@@ -176,19 +197,24 @@ module.exports = {
           { $inc: { balance: amount }, $set: { [cooldownField]: now } },
           { upsert: true }
         );
-        await interaction.reply(
-          `¡Cometiste un crimen y ganaste ${amount} monedas!`
-        );
       } else {
         await economyCollection.updateOne(
           { guildId, userId },
           { $inc: { balance: -amount }, $set: { [cooldownField]: now } },
           { upsert: true }
         );
-        await interaction.reply(
-          `¡Fuiste atrapado y perdiste ${amount} monedas!`
-        );
       }
+
+      const embed = new EmbedBuilder()
+        .setColor(outcome === "win" ? 0x00ff00 : 0xff0000)
+        .setTitle(outcome === "win" ? "¡Éxito!" : "¡Fallaste!")
+        .setDescription(
+          outcome === "win"
+            ? `¡Cometiste un crimen y ganaste ${amount} monedas!`
+            : `¡Fuiste atrapado y perdiste ${amount} monedas!`
+        );
+
+      await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "rob") {
       const targetUser = interaction.options.getUser("usuario");
       const userId = interaction.user.id;
@@ -198,9 +224,13 @@ module.exports = {
       });
 
       if (!target || target.balance < 100) {
-        return interaction.reply(
-          `${targetUser.tag} no tiene suficiente dinero para robar.`
-        );
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("Robo Fallido")
+          .setDescription(
+            `${targetUser.tag} no tiene suficiente dinero para robar.`
+          );
+        return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       const success = Math.random() < 0.5;
@@ -216,13 +246,17 @@ module.exports = {
           { guildId, userId: targetUser.id },
           { $inc: { balance: -amount } }
         );
-        await interaction.reply(
-          `¡Robaste ${amount} monedas de ${targetUser.tag}!`
-        );
+        const embed = new EmbedBuilder()
+          .setColor(0x00ff00)
+          .setTitle("¡Robo Exitoso!")
+          .setDescription(`¡Robaste ${amount} monedas de ${targetUser.tag}!`);
+        await interaction.reply({ embeds: [embed] });
       } else {
-        await interaction.reply(
-          `¡Fallaste al intentar robar a ${targetUser.tag}!`
-        );
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("¡Robo Fallido!")
+          .setDescription(`¡Fallaste al intentar robar a ${targetUser.tag}!`);
+        await interaction.reply({ embeds: [embed] });
       }
     } else if (subcommand === "work") {
       const userId = interaction.user.id;
@@ -235,9 +269,14 @@ module.exports = {
         const timeLeft = Math.ceil(
           (cooldown - (now - user[cooldownField])) / 1000
         );
-        return interaction.reply(
-          `Debes esperar ${timeLeft} segundos antes de trabajar nuevamente.`
-        );
+
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("Enfriamiento Activo")
+          .setDescription(
+            `Debes esperar ${timeLeft} segundos antes de trabajar nuevamente.`
+          );
+        return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       const amount = Math.floor(Math.random() * 300) + 100;
@@ -248,14 +287,22 @@ module.exports = {
         { upsert: true }
       );
 
-      await interaction.reply(`¡Trabajaste duro y ganaste ${amount} monedas!`);
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle("Trabajo Exitoso")
+        .setDescription(`¡Trabajaste duro y ganaste ${amount} monedas!`);
+      await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "gamble") {
       const userId = interaction.user.id;
       const amount = interaction.options.getInteger("cantidad");
       const user = await economyCollection.findOne({ guildId, userId });
 
       if (!user || user.balance < amount) {
-        return interaction.reply("No tienes suficiente dinero para apostar.");
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("Fondos Insuficientes")
+          .setDescription("No tienes suficiente dinero para apostar.");
+        return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       const win = Math.random() < 0.5;
@@ -265,13 +312,21 @@ module.exports = {
           { guildId, userId },
           { $inc: { balance: amount } }
         );
-        await interaction.reply(`¡Ganaste ${amount} monedas apostando!`);
+        const embed = new EmbedBuilder()
+          .setColor(0x00ff00)
+          .setTitle("¡Apuesta Ganada!")
+          .setDescription(`¡Ganaste ${amount} monedas apostando!`);
+        await interaction.reply({ embeds: [embed] });
       } else {
         await economyCollection.updateOne(
           { guildId, userId },
           { $inc: { balance: -amount } }
         );
-        await interaction.reply(`¡Perdiste ${amount} monedas apostando!`);
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("¡Apuesta Perdida!")
+          .setDescription(`¡Perdiste ${amount} monedas apostando!`);
+        await interaction.reply({ embeds: [embed] });
       }
     } else if (subcommand === "daily") {
       const userId = interaction.user.id;
@@ -287,9 +342,14 @@ module.exports = {
         const hours = Math.floor(timeLeft / 3600);
         const minutes = Math.floor((timeLeft % 3600) / 60);
         const seconds = timeLeft % 60;
-        return interaction.reply(
-          `Debes esperar ${hours} horas, ${minutes} minutos y ${seconds} segundos antes de reclamar tu recompensa diaria nuevamente.`
-        );
+
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle("Enfriamiento Activo")
+          .setDescription(
+            `Debes esperar ${hours} horas, ${minutes} minutos y ${seconds} segundos antes de reclamar tu recompensa diaria nuevamente.`
+          );
+        return interaction.reply({ embeds: [embed], ephemeral: true });
       }
 
       const dailyReward = 500;
@@ -300,9 +360,13 @@ module.exports = {
         { upsert: true }
       );
 
-      await interaction.reply(
-        `¡Reclamaste tu recompensa diaria de ${dailyReward} monedas!`
-      );
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle("Recompensa Diaria")
+        .setDescription(
+          `¡Reclamaste tu recompensa diaria de ${dailyReward} monedas!`
+        );
+      await interaction.reply({ embeds: [embed] });
     }
   },
 };
