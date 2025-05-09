@@ -69,6 +69,10 @@ for (const file of commandFiles) {
   }
 }
 
+// Agregar el nuevo comando de economía
+const economyCommand = require("./commands/economy");
+client.commands.set(economyCommand.name, economyCommand);
+
 // Asegurar que el cliente tenga acceso al cliente de MongoDB
 client.mongoClient = mongoClient;
 
@@ -141,10 +145,14 @@ client.once(Events.ClientReady, async () => {
 
   console.log("Registrando comandos…");
 
+  // Extraer datos del comando economy
+  const economyCommandData = require("./commands/economy").data.toJSON();
+
   const commands = [
     require("./commands/mail"),
     require("./commands/ping"),
     require("./commands/setup-modmail"),
+    economyCommandData,
   ];
 
   // Registra comandos globalmente
