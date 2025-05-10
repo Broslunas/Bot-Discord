@@ -154,6 +154,7 @@ client.once(Events.ClientReady, async () => {
     require("./commands/modmail/setup-modmail"),
     require("./commands/modmail/create-ticket"),
     require("./commands/modmail/close-ticket"),
+    require("./commands/modmail/tickets-history"),
     economyCommandData,
   ];
 

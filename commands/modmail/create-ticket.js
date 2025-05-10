@@ -16,7 +16,7 @@ module.exports = {
     }
 
     const user = interaction.user; // Obtener el usuario que ejecuta el comando
-    const userIdShort = Math.floor(10000 + Math.random() * 90000).toString(); // Generar un número aleatorio de 5 dígitos
+    const ticketId = Math.floor(10000 + Math.random() * 90000).toString(); // Generar un número aleatorio de 5 dígitos
 
     try {
       const db = client.mongoClient.db("Info");
@@ -42,8 +42,9 @@ module.exports = {
         });
       }
 
+      const channelName = `ticket-${user.username}-${ticketId}`; // Nombre del canal con el ticketId
       const ticketChannel = await interaction.guild.channels.create({
-        name: `ticket-${user.username}-${userIdShort}`,
+        name: channelName,
         type: 0, // Canal de texto
         parent: category.id,
         topic: `Ticket de modmail para ${user.tag}`,
@@ -68,6 +69,7 @@ module.exports = {
         guildId: interaction.guild.id,
         userId: user.id,
         channelId: ticketChannel.id,
+        channelName: channelName, // Añadir el nombre del canal
         createdAt: new Date(),
         status: "open", // Añadir el estado del ticket como "open"
       });
