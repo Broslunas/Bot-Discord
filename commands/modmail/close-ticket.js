@@ -38,6 +38,15 @@ module.exports = {
       const db = client.mongoClient.db("Info");
       const modmailCollection = db.collection(`MdMail-${interaction.guild.id}`);
 
+      const config = await modmailCollection.findOne({
+        guildId: interaction.guild.id,
+      });
+
+      if (!config || !config.logChannelId) {
+        console.error("No se encontró el canal de logs configurado.");
+        return;
+      }
+
       // Verificar si el canal está registrado como ticket
       const ticket = await modmailCollection.findOne({ channelId });
 
@@ -51,94 +60,39 @@ module.exports = {
         return;
       }
 
-      // Verificar si el canal aún existe
+      // Actualizar el estado del ticket a "closed"
+      await modmailCollection.updateOne(
+        { channelId },
+        { $set: { status: "closed" } }
+      );
+
+      // Eliminar el canal
       const channel = interaction.guild.channels.cache.get(channelId);
-      if (!channel) {
-        await modmailCollection.deleteOne({ channelId });
-        if (!interaction.replied && !interaction.deferred) {
-          return interaction.reply({
-            content:
-              "El canal ya no existe, pero se eliminó de la base de datos.",
-            flags: MessageFlags.Ephemeral,
+      const channelName = channel?.name || "Canal desconocido";
+      if (channel) await channel.delete();
+
+      // Enviar mensaje al canal de logs
+      const logChannel = interaction.guild.channels.cache.get(
+        config.logChannelId
+      );
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
+          .setDescription(
+            `❌ Se ha cerrado el ticket: **${channelName}**\nUsuario: <@${ticket.userId}> (${ticket.userId})`
+          )
+          .setFooter({
+            text: `Enviado el ${new Date().toLocaleString()}`,
+            iconURL: "https://cdn.broslunas.com/favicon.png",
           });
-        }
-        return;
-      }
 
-      // Enviar mensaje de advertencia
-      const warningEmbed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
-        .setDescription(
-          "⚠️ Este ticket será eliminado en 10 segundos. Si deseas cancelar, usa `/reopen ticket`."
-        )
-        .setFooter({
-          text: `Enviado el ${new Date().toLocaleString()}`,
-          iconURL: "https://cdn.broslunas.com/favicon.png",
+        await logChannel.send({
+          embeds: [logEmbed],
         });
-
-      await interaction.reply({
-        embeds: [warningEmbed],
-        flags: MessageFlags.Ephemeral,
-      });
-
-      // Esperar 10 segs antes de eliminar
-      setTimeout(async () => {
-        try {
-          // Verificar si el canal aún existe antes de eliminar
-          const channelToDelete =
-            interaction.guild.channels.cache.get(channelId);
-          if (channelToDelete) {
-            await channelToDelete.delete();
-          }
-
-          // Eliminar el registro de la base de datos
-          await modmailCollection.deleteOne({ channelId });
-
-          // Enviar mensaje al MD del usuario
-          const user = await client.users.fetch(ticket.userId);
-          const dmEmbed = new EmbedBuilder()
-            .setColor(0x00ff00)
-            .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
-            .setDescription(
-              "✅ Tu ticket ha sido eliminado correctamente. Si necesitas más ayuda, no dudes en abrir otro ticket."
-            )
-            .setFooter({
-              text: `Enviado el ${new Date().toLocaleString()}`,
-              iconURL: "https://cdn.broslunas.com/favicon.png",
-            });
-
-          await user.send({ embeds: [dmEmbed] });
-        } catch (err) {
-          console.error(
-            "Error al eliminar el ticket o enviar mensaje al MD:",
-            err
-          );
-        }
-      }, 10000); // 1 minuto en milisegundos
+      }
     } catch (err) {
-      console.error(err);
-
-      const errorEmbed = new EmbedBuilder()
-        .setColor(0xff0000)
-        .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
-        .setDescription("❌ Hubo un error al procesar el cierre del ticket.")
-        .setFooter({
-          text: `Enviado el ${new Date().toLocaleString()}`,
-          iconURL: "https://cdn.broslunas.com/favicon.png",
-        });
-
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          embeds: [errorEmbed],
-          flags: MessageFlags.Ephemeral,
-        });
-      } else {
-        await interaction.followUp({
-          embeds: [errorEmbed],
-          flags: MessageFlags.Ephemeral,
-        });
-      }
+      console.error("Error al cerrar el ticket:", err);
     }
   },
 };

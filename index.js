@@ -228,6 +228,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
+client.on(Events.MessageCreate, async (message) => {
+  // Ignorar mensajes de bots
+  if (message.author.bot) return;
+
+  try {
+    const db = client.mongoClient.db("Info");
+    const modmailCollection = db.collection(`MdMail-${message.guild.id}`);
+
+    // Verificar si el canal es un ticket
+    const ticket = await modmailCollection.findOne({
+      channelId: message.channel.id,
+    });
+    if (!ticket) return; // Si no es un canal de ticket, salir
+  } catch (err) {
+    console.error("Error al procesar el mensaje:", err);
+  }
+});
+
 client.on("error", (error) => {
   console.error("Client error:", error);
 });

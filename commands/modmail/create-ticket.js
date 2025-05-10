@@ -15,8 +15,8 @@ module.exports = {
       });
     }
 
-    const user = interaction.user; // Get the user executing the command
-    const userIdShort = Math.floor(10000 + Math.random() * 90000).toString(); // Generate a random 5-digit number
+    const user = interaction.user; // Obtener el usuario que ejecuta el comando
+    const userIdShort = Math.floor(10000 + Math.random() * 90000).toString(); // Generar un número aleatorio de 5 dígitos
 
     try {
       const db = client.mongoClient.db("Info");
@@ -26,9 +26,9 @@ module.exports = {
         guildId: interaction.guild.id,
       });
 
-      if (!config || !config.categoryId) {
+      if (!config || !config.categoryId || !config.logChannelId) {
         return interaction.reply({
-          content: "El sistema de modmail no está configurado.",
+          content: "El sistema de modmail no está configurado correctamente.",
           ephemeral: true,
         });
       }
@@ -44,28 +44,52 @@ module.exports = {
 
       const ticketChannel = await interaction.guild.channels.create({
         name: `ticket-${user.username}-${userIdShort}`,
-        type: 0, // Text channel
+        type: 0, // Canal de texto
         parent: category.id,
         topic: `Ticket de modmail para ${user.tag}`,
         permissionOverwrites: [
           {
             id: interaction.guild.id,
-            deny: [PermissionsBitField.Flags.ViewChannel],
+            deny: [PermissionsBitField.Flags.ViewChannel], // Denegar acceso al resto del servidor
           },
           {
             id: user.id,
-            allow: [PermissionsBitField.Flags.ViewChannel],
+            allow: [PermissionsBitField.Flags.ViewChannel], // Permitir acceso al usuario que creó el ticket
+          },
+          {
+            id: interaction.guild.roles.everyone.id,
+            deny: [PermissionsBitField.Flags.ViewChannel], // Asegurar que el rol @everyone no tenga acceso
           },
         ],
       });
 
-      // Save ticket info to the database
+      // Guardar información del ticket en la base de datos
       await modmailCollection.insertOne({
         guildId: interaction.guild.id,
         userId: user.id,
         channelId: ticketChannel.id,
         createdAt: new Date(),
+        status: "open", // Añadir el estado del ticket como "open"
       });
+
+      // Enviar mensaje al canal de logs
+      const logChannel = interaction.guild.channels.cache.get(
+        config.logChannelId
+      );
+      if (logChannel) {
+        const logEmbed = new EmbedBuilder()
+          .setColor(0x0099ff)
+          .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
+          .setDescription(
+            `🎫 Se ha creado un nuevo ticket: ${ticketChannel}\nUsuario: ${user.tag} (${user.id})`
+          )
+          .setFooter({
+            text: `Enviado el ${new Date().toLocaleString()}`,
+            iconURL: "https://cdn.broslunas.com/favicon.png",
+          });
+
+        await logChannel.send({ embeds: [logEmbed] });
+      }
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)

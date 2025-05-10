@@ -39,9 +39,24 @@ module.exports = {
       const db = client.mongoClient.db("Info");
       const modmailCollection = db.collection(`MdMail-${interaction.guild.id}`);
 
+      // Crear el canal de logs dentro de la categoría
+      const logChannel = await interaction.guild.channels.create({
+        name: "modmail-logs",
+        type: 0, // Text channel
+        parent: category.id,
+        topic: "Canal de logs para el sistema de modmail",
+        permissionOverwrites: [
+          {
+            id: interaction.guild.id,
+            deny: [PermissionsBitField.Flags.ViewChannel],
+          },
+        ],
+      });
+
+      // Guardar la configuración en la base de datos
       await modmailCollection.updateOne(
         { guildId: interaction.guild.id },
-        { $set: { categoryId: category.id } },
+        { $set: { categoryId: category.id, logChannelId: logChannel.id } }, // Guardar logChannelId
         { upsert: true }
       );
 
@@ -49,7 +64,7 @@ module.exports = {
         .setColor(0x00ff00)
         .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
         .setDescription(
-          `✅ El sistema de modmail ha sido configurado correctamente en la categoría ${category.name}.`
+          `✅ El sistema de modmail ha sido configurado correctamente en la categoría ${category.name}. Se ha creado el canal de logs: ${logChannel}.`
         )
         .setFooter({
           text: `Enviado el ${new Date().toLocaleString()}`,
