@@ -151,9 +151,9 @@ client.once(Events.ClientReady, async () => {
   const commands = [
     require("./commands/mail"),
     require("./commands/ping"),
-    require("./commands/setup-modmail"),
-    require("./commands/create-ticket"),
-    require("./commands/delete-ticket"),
+    require("./commands/modmail/setup-modmail"),
+    require("./commands/modmail/create-ticket"),
+    require("./commands/modmail/close-ticket"),
     economyCommandData,
   ];
 
@@ -190,10 +190,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await command.execute(interaction, client);
       } catch (error) {
         console.error(error);
-        await interaction.reply({
-          content: "Hubo un error al ejecutar este comando.",
-          ephemeral: true,
-        });
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: "Hubo un error al ejecutar este comando.",
+            flags: MessageFlags.Ephemeral,
+          });
+        }
       }
     }
   }
@@ -210,12 +212,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
           }ms`
         );
 
-      await interaction.update({
-        embeds: [embed],
-      });
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.update({
+          embeds: [embed],
+        });
+      }
     }
     if (interaction.customId === "close") {
-      await interaction.message.delete();
+      try {
+        await interaction.message.delete();
+      } catch (error) {
+        console.error("Error al eliminar el mensaje:", error);
+      }
     }
   }
 });

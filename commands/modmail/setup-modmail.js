@@ -47,9 +47,14 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
+        .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
         .setDescription(
           `✅ El sistema de modmail ha sido configurado correctamente en la categoría ${category.name}.`
-        );
+        )
+        .setFooter({
+          text: `Enviado el ${new Date().toLocaleString()}`,
+          iconURL: "https://cdn.broslunas.com/favicon.png",
+        });
 
       await interaction.reply({ embeds: [embed], ephemeral: true });
     } catch (err) {
@@ -57,9 +62,12 @@ module.exports = {
 
       const errorEmbed = new EmbedBuilder()
         .setColor(0xff0000)
-        .setDescription(
-          "❌ Hubo un error al configurar el sistema de modmail."
-        );
+        .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
+        .setDescription("❌ Hubo un error al configurar el sistema de modmail.")
+        .setFooter({
+          text: `Enviado el ${new Date().toLocaleString()}`,
+          iconURL: "https://cdn.broslunas.com/favicon.png",
+        });
 
       await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
     }

@@ -16,7 +16,7 @@ module.exports = {
     }
 
     const user = interaction.user; // Get the user executing the command
-    const userIdShort = user.id.slice(-5); // Last 5 characters of the user ID
+    const userIdShort = Math.floor(10000 + Math.random() * 90000).toString(); // Generate a random 5-digit number
 
     try {
       const db = client.mongoClient.db("Info");
@@ -69,15 +69,25 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
-        .setDescription(`✅ Ticket creado correctamente: ${ticketChannel}`);
+        .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
+        .setDescription(`✅ Ticket creado correctamente: ${ticketChannel}`)
+        .setFooter({
+          text: `Enviado el ${new Date().toLocaleString()}`,
+          iconURL: "https://cdn.broslunas.com/favicon.png",
+        });
 
       await interaction.reply({ embeds: [embed], ephemeral: true });
 
       const ticketEmbed = new EmbedBuilder()
         .setColor(0x0099ff)
+        .setTitle(`Broslunas Modmail | ${interaction.guild.name}`)
         .setDescription(
           `Hola ${user}, este es tu ticket de modmail. Un miembro del equipo te asistirá pronto.`
-        );
+        )
+        .setFooter({
+          text: `Enviado el ${new Date().toLocaleString()}`,
+          iconURL: "https://cdn.broslunas.com/favicon.png",
+        });
 
       await ticketChannel.send({
         content: `${user}`,
@@ -88,7 +98,11 @@ module.exports = {
 
       const errorEmbed = new EmbedBuilder()
         .setColor(0xff0000)
-        .setDescription("❌ Hubo un error al crear el ticket.");
+        .setDescription("❌ Hubo un error al crear el ticket.")
+        .setFooter({
+          text: `Enviado el ${new Date().toLocaleString()}`,
+          iconURL: "https://cdn.broslunas.com/favicon.png",
+        });
 
       await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
     }
