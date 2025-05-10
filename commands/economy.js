@@ -95,10 +95,11 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
-        .setTitle("Saldo Actual")
+        .setTitle("💰 Tu Saldo Actual")
         .setDescription(
-          `Tu saldo actual en este servidor es: ${balance} monedas.`
-        );
+          `✨ **Tu saldo actual en este servidor es:**\n\n**${balance} monedas** 🪙`
+        )
+        .setFooter({ text: "¡Sigue acumulando monedas!" });
       await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "add-money") {
       if (!interaction.member.permissions.has("Administrator")) {
@@ -119,10 +120,11 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
-        .setTitle("Dinero Añadido")
+        .setTitle("✅ Dinero Añadido")
         .setDescription(
-          `Se han añadido ${amount} monedas a ${targetUser.tag} en este servidor.`
-        );
+          `💵 **Se han añadido** \`${amount}\` **monedas a** ${targetUser.tag}.\n\n¡Ahora tienen más para gastar! 🎉`
+        )
+        .setFooter({ text: "Comando ejecutado por un administrador." });
       await interaction.reply({ embeds: [embed] });
     } else if (
       subcommand === "remove-money" &&
@@ -139,10 +141,11 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0xff0000)
-        .setTitle("Dinero Removido")
+        .setTitle("❌ Dinero Removido")
         .setDescription(
-          `Se han quitado ${amount} monedas a ${targetUser.tag} en este servidor.`
-        );
+          `💸 **Se han quitado** \`${amount}\` **monedas a** ${targetUser.tag}.\n\n¡Esperemos que no lo noten! 😅`
+        )
+        .setFooter({ text: "Comando ejecutado por un administrador." });
       await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "leaderboard") {
       const topUsers = await economyCollection
@@ -160,10 +163,11 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
-        .setTitle("Tabla de Clasificación")
+        .setTitle("🏆 Tabla de Clasificación")
         .setDescription(
-          `**Tabla de clasificación en este servidor:**\n${leaderboard}`
-        );
+          `✨ **Los mejores usuarios en este servidor:**\n\n${leaderboard}\n\n¡Sigue trabajando para alcanzar la cima! 🚀`
+        )
+        .setFooter({ text: "¡Compite con tus amigos!" });
       await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "crime") {
       const userId = interaction.user.id;
@@ -207,13 +211,13 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(outcome === "win" ? 0x00ff00 : 0xff0000)
-        .setTitle(outcome === "win" ? "¡Éxito!" : "¡Fallaste!")
+        .setTitle(outcome === "win" ? "🎉 ¡Éxito!" : "🚨 ¡Fallaste!")
         .setDescription(
           outcome === "win"
-            ? `¡Cometiste un crimen y ganaste ${amount} monedas!`
-            : `¡Fuiste atrapado y perdiste ${amount} monedas!`
-        );
-
+            ? `🕵️‍♂️ **Cometiste un crimen y ganaste** \`${amount}\` **monedas!**\n\n¡Qué suerte! 🍀`
+            : `👮‍♂️ **Fuiste atrapado y perdiste** \`${amount}\` **monedas!**\n\n¡Mejor suerte la próxima vez! 😔`
+        )
+        .setFooter({ text: "¡Juega con cuidado!" });
       await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "rob") {
       const targetUser = interaction.options.getUser("usuario");
@@ -248,14 +252,18 @@ module.exports = {
         );
         const embed = new EmbedBuilder()
           .setColor(0x00ff00)
-          .setTitle("¡Robo Exitoso!")
-          .setDescription(`¡Robaste ${amount} monedas de ${targetUser.tag}!`);
+          .setTitle("🤑 ¡Robo Exitoso!")
+          .setDescription(
+            `💰 **Robaste** \`${amount}\` **monedas de** ${targetUser.tag}.\n\n¡Qué golpe maestro! 🦹‍♂️`
+          );
         await interaction.reply({ embeds: [embed] });
       } else {
         const embed = new EmbedBuilder()
           .setColor(0xff0000)
-          .setTitle("¡Robo Fallido!")
-          .setDescription(`¡Fallaste al intentar robar a ${targetUser.tag}!`);
+          .setTitle("😓 ¡Robo Fallido!")
+          .setDescription(
+            `😢 **Fallaste al intentar robar a** ${targetUser.tag}.\n\n¡Mejor suerte la próxima vez!`
+          );
         await interaction.reply({ embeds: [embed] });
       }
     } else if (subcommand === "work") {
@@ -289,8 +297,11 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
-        .setTitle("Trabajo Exitoso")
-        .setDescription(`¡Trabajaste duro y ganaste ${amount} monedas!`);
+        .setTitle("💼 Trabajo Exitoso")
+        .setDescription(
+          `💪 **Trabajaste duro y ganaste** \`${amount}\` **monedas!**\n\n¡Sigue así para ganar más! 🏆`
+        )
+        .setFooter({ text: "¡El esfuerzo siempre vale la pena!" });
       await interaction.reply({ embeds: [embed] });
     } else if (subcommand === "gamble") {
       const userId = interaction.user.id;
@@ -314,8 +325,10 @@ module.exports = {
         );
         const embed = new EmbedBuilder()
           .setColor(0x00ff00)
-          .setTitle("¡Apuesta Ganada!")
-          .setDescription(`¡Ganaste ${amount} monedas apostando!`);
+          .setTitle("🎲 ¡Apuesta Ganada!")
+          .setDescription(
+            `🎉 **Ganaste** \`${amount}\` **monedas apostando!**\n\n¡Qué suerte tienes! 🍀`
+          );
         await interaction.reply({ embeds: [embed] });
       } else {
         await economyCollection.updateOne(
@@ -324,8 +337,10 @@ module.exports = {
         );
         const embed = new EmbedBuilder()
           .setColor(0xff0000)
-          .setTitle("¡Apuesta Perdida!")
-          .setDescription(`¡Perdiste ${amount} monedas apostando!`);
+          .setTitle("🎲 ¡Apuesta Perdida!")
+          .setDescription(
+            `😔 **Perdiste** \`${amount}\` **monedas apostando.**\n\n¡Inténtalo de nuevo!`
+          );
         await interaction.reply({ embeds: [embed] });
       }
     } else if (subcommand === "daily") {
@@ -362,10 +377,11 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
-        .setTitle("Recompensa Diaria")
+        .setTitle("🎁 Recompensa Diaria")
         .setDescription(
-          `¡Reclamaste tu recompensa diaria de ${dailyReward} monedas!`
-        );
+          `✨ **Reclamaste tu recompensa diaria de** \`${dailyReward}\` **monedas!**\n\n¡Vuelve mañana para más! 🌟`
+        )
+        .setFooter({ text: "¡No olvides reclamar todos los días!" });
       await interaction.reply({ embeds: [embed] });
     }
   },
