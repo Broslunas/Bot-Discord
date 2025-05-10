@@ -37,7 +37,7 @@ module.exports = {
 
     try {
       const db = client.mongoClient.db("Info");
-      const modmailCollection = db.collection("Modmail");
+      const modmailCollection = db.collection(`MdMail-${interaction.guild.id}`);
 
       await modmailCollection.updateOne(
         { guildId: interaction.guild.id },

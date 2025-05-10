@@ -152,6 +152,8 @@ client.once(Events.ClientReady, async () => {
     require("./commands/mail"),
     require("./commands/ping"),
     require("./commands/setup-modmail"),
+    require("./commands/create-ticket"),
+    require("./commands/delete-ticket"),
     economyCommandData,
   ];
 
@@ -216,6 +218,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.message.delete();
     }
   }
+});
+
+client.on("error", (error) => {
+  console.error("Client error:", error);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
 });
 
 process.on("exit", async () => {
