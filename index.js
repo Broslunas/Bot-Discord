@@ -34,6 +34,7 @@ const {
   Events,
   EmbedBuilder,
   MessageFlags,
+  ActivityType,
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -78,6 +79,16 @@ client.mongoClient = mongoClient;
 
 client.once(Events.ClientReady, async () => {
   console.log(`Bot listo! ${client.user.tag}`);
+
+  client.user.setPresence({
+    activities: [
+      {
+        name: "ig: @_pablito_luna_",
+        type: ActivityType.Watching,
+      },
+    ],
+    status: "online",
+  });
 
   try {
     await mongoClient.connect();
