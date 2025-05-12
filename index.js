@@ -87,7 +87,7 @@ client.once(Events.ClientReady, async () => {
         type: ActivityType.Watching,
       },
     ],
-    status: "online",
+    status: "dnd",
   });
 
   try {
