@@ -35,6 +35,7 @@ const {
   EmbedBuilder,
   MessageFlags,
   ActivityType,
+  PermissionsBitField,
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -79,6 +80,16 @@ client.mongoClient = mongoClient;
 
 client.once(Events.ClientReady, async () => {
   console.log(`Bot listo! ${client.user.tag}`);
+
+  // Check bot permissions in all guilds
+  client.guilds.cache.forEach((guild) => {
+    const botMember = guild.members.me;
+    if (!botMember.permissions.has(PermissionsBitField.Flags.KickMembers)) {
+      console.warn(
+        `Advertencia: El bot no tiene permisos para expulsar miembros en el servidor ${guild.name}.`
+      );
+    }
+  });
 
   client.user.setPresence({
     activities: [
@@ -166,6 +177,7 @@ client.once(Events.ClientReady, async () => {
     require("./commands/modmail/create-ticket"),
     require("./commands/modmail/close-ticket"),
     require("./commands/modmail/tickets-history"),
+    require("./commands/mod/kick"),
     economyCommandData,
   ];
 
@@ -199,7 +211,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     const command = client.commands.get(interaction.commandName);
     if (command) {
       try {
-        await command.execute(interaction, client);
+        await command.execute(interaction, client); // Pass the client object
       } catch (error) {
         console.error(error);
         if (!interaction.replied && !interaction.deferred) {
